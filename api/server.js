@@ -252,8 +252,6 @@ app.post('/bmi', (req, res) => {
 });
 
 
-
-
 // 4. Disease Information Retrieval and Association
 app.get('/diseases', (req, res) => {
     const sql = 'SELECT disease_id, name FROM diseases';
