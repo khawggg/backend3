@@ -251,26 +251,6 @@ app.post('/bmi', (req, res) => {
     });
 });
 
-// เพิ่ม endpoint สำหรับดึงข้อมูล BMI
-app.get('/getUserBMI', (req, res) => {
-    const userId = req.query.userId;
-    
-    if (!userId) {
-        return res.status(400).json({ error: 'ไม่พบรหัสผู้ใช้งาน' });
-    }
-    
-    const sql = 'SELECT bmi, created_at FROM health_assessment WHERE user_id = ? ORDER BY created_at ASC';
-    
-    db.query(sql, [userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching BMI data:', err);
-            return res.status(500).json({ error: 'ไม่สามารถดึงข้อมูล BMI ได้' });
-        }
-        
-        res.json(results);
-    });
-});
-
 
 // 4. Disease Information Retrieval and Association
 app.get('/diseases', (req, res) => {
