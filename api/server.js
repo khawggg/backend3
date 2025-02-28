@@ -252,22 +252,6 @@ app.post('/bmi', (req, res) => {
 });
 
 
-// ฝั่งเซิร์ฟเวอร์: endpoint สำหรับดึงข้อมูล BMI
-app.get('/getUserBMI', (req, res) => {
-    const userId = req.query.userId;
-    const sql = 'SELECT bmi, created_at FROM health_assessment WHERE user_id = ? ORDER BY created_at ASC';
-    
-    db.query(sql, [userId], (err, results) => {
-        if (err) {
-            console.error('Error fetching BMI data:', err);
-            res.status(500).json({ error: 'Failed to retrieve BMI data' });
-        } else {
-            res.json(results);
-        }
-    });
-});
-
-
 // 4. Disease Information Retrieval and Association
 app.get('/diseases', (req, res) => {
     const sql = 'SELECT disease_id, name FROM diseases';
