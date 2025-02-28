@@ -326,77 +326,101 @@ app.get('/users', (req, res) => {
 
 // ลบผู้ใช้
 app.delete('/users/:userId', (req, res) => {
-  const userId = req.params.userId;
-  const sql = 'DELETE FROM users WHERE user_id = ?';
-  db.query(sql, [userId], (err, result) => {
-    if (err) {
-      console.error('Error deleting user:', err);
-      res.status(500).send('Failed to delete user');
-    } else {
-      res.send('User deleted successfully');
-    }
-  });
+    const userId = req.params.userId;
+    const sql = 'DELETE FROM users WHERE user_id = ?';
+    db.query(sql, [userId], (err, result) => {
+        if (err) {
+            console.error('Error deleting user:', err);
+            return res.status(500).send('Failed to delete user');
+        } else if (result.affectedRows === 0) {
+            return res.status(404).send('User not found');
+        }
+        res.send('User deleted successfully');
+    });
 });
 
 // แก้ไขข้อมูลผู้ใช้
 app.put('/users/:userId', (req, res) => {
     const userId = req.params.userId;
-    const { name, age, gender, phone, email } = req.body;
+    const {
+        name,
+        age,
+        gender,
+        phone,
+        email
+    } = req.body;
     const sql = 'UPDATE users SET name = ?, age = ?, gender = ?, phone = ?, email = ? WHERE user_id = ?';
-    
-    console.log('Updating user:', userId, req.body); // เพิ่ม log เพื่อตรวจสอบข้อมูล
-    
+
+    console.log('Updating user:', userId, req.body);
+
     db.query(sql, [name, age, gender, phone, email, userId], (err, result) => {
-      if (err) {
-        console.error('Error updating user:', err);
-        res.status(500).send('Failed to update user');
-      } else if (result.affectedRows === 0) {
-        res.status(404).send('User not found');
-      } else {
+        if (err) {
+            console.error('Error updating user:', err);
+            return res.status(500).send('Failed to update user');
+        } else if (result.affectedRows === 0) {
+            return res.status(404).send('User not found');
+        }
         res.send('User updated successfully');
-      }
     });
 });
 
-app.post('/users', (req, res) => {
-    const { name, age, gender, phone, email ,password} = req.body;
-    const sql = 'INSERT INTO users (name, age, gender, phone, email,password) VALUES (?, ?, ?, ?, ? ,?)';
-    
-    db.query(sql, [name, age, gender, phone, email,password], (err, result) => {
-      if (err) {
-        console.error('Error creating user:', err);
+
+app.post('/users', async (req, res) => {
+    const {
+        name,
+        age,
+        gender,
+        phone,
+        email,
+        password
+    } = req.body;
+
+    try {
+        const hashedPassword = await bcrypt.hash(password, 10); // Hash รหัสผ่าน
+
+        const sql = 'INSERT INTO users (name, age, gender, phone, email, password) VALUES (?, ?, ?, ?, ?, ?)';
+        db.query(sql, [name, age, gender, phone, email, hashedPassword], (err, result) => {
+            if (err) {
+                console.error('Error creating user:', err);
+                return res.status(500).send('Failed to create user');
+            }
+            res.status(201).send('User created successfully');
+        });
+    } catch (error) {
+        console.error('Error hashing password:', error);
         res.status(500).send('Failed to create user');
-      } else {
-        res.status(201).send('User created successfully');
-      }
-    });
+    }
 });
 
 app.get('/getUserBMI', (req, res) => {
     const userId = req.query.userId;
     const sql = 'SELECT  u.user_id , u_name , h.bmi FROM health_assessment h JOIN users u ON h.user_id = u.user_id ';
-    
+
     db.query(sql, [userId], (err, results) => {
-      if (err) {
-        console.error('Error fetching BMI data:', err);
-        res.status(500).send('Failed to fetch BMI data');
-      } else {
-        res.json(results);
-      }
+        if (err) {
+            console.error('Error fetching BMI data:', err);
+            return res.status(500).send('Failed to fetch BMI data');
+        } else {
+            res.json(results);
+        }
     });
 });
-  
+
 app.get("/users/:id", (req, res) => {
     const userId = req.params.id;
     db.query("SELECT * FROM users WHERE user_id = ?", [userId], (err, results) => {
         if (err) {
             console.error("❌ Error fetching user:", err);
-            res.status(500).json({ error: "Internal Server Error" });
+            return res.status(500).json({
+                error: "Internal Server Error"
+            });
         } else {
             if (results.length > 0) {
-                res.json(results);  // ส่งข้อมูลของ user ตาม ID
+                res.json(results); // ส่งข้อมูลของ user ตาม ID
             } else {
-                res.status(404).json({ error: "User not found" });  // กรณีที่ไม่พบ user
+                return res.status(404).json({
+                    error: "User not found"
+                }); // กรณีที่ไม่พบ user
             }
         }
     });
