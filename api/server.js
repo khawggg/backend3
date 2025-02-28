@@ -76,12 +76,11 @@ db.connect((err) => {
 app.get("/", (req, res) => {
     res.send("API is working!");
 });
-// API endpoint สำหรับดึงข้อมูลโปรไฟล์ผู้ใช้โดยใช้ user_id
-app.get('/api/profile/:user_id', (req, res) => {
-    // ดึง user_id จาก parameter ของ URL (เช่น /api/profile/123 จะได้ userId = 123)
-    const userId = req.params.user_id;
+// ใช้เส้นทางเดียวสำหรับการดึงข้อมูลโปรไฟล์
+app.get('/api/profile/:userId', (req, res) => {
+    const userId = req.params.userId;
 
-    // สร้าง SQL query เพื่อดึงข้อมูลที่ต้องการ
+    // สร้าง SQL query เพื่อดึงข้อมูลโปรไฟล์
     const query = `
     SELECT 
         u.user_id,
@@ -119,70 +118,25 @@ app.get('/api/profile/:user_id', (req, res) => {
     });
 });
 
+// เพิ่มฟังก์ชันการบันทึกข้อมูลโรคที่เชื่อมโยงกับผู้ใช้
 app.post('/user-disease', (req, res) => {
     const { userId, diseaseId } = req.body;
-    // ดึงข้อมูลโรคจากตาราง diseases
-    const getDiseaseSQL = `
-        SELECT name, description, exercise_type, detailed_guideline
-        FROM diseases WHERE disease_id = ?
+
+    // เก็บแค่ user_id และ disease_id
+    const insertSQL = `
+        INSERT INTO user_diseases (user_id, disease_id)
+        VALUES (?, ?)
     `;
-    db.query(getDiseaseSQL, [diseaseId], (err, diseaseResult) => {
+    db.query(insertSQL, [userId, diseaseId], (err, result) => {
         if (err) {
-            console.error('Error fetching disease data:', err);
-            return res.status(500).send('Failed to fetch disease data');
+            console.error('User-disease association error:', err);
+            return res.status(500).send('Failed to associate user with disease');
         }
-        if (diseaseResult.length === 0) {
-            return res.status(404).send('Disease not found');
-        }
-        const { name, description, exercise_type, detailed_guideline } = diseaseResult[0];
-        // บันทึกข้อมูลโรคลงใน user_diseases
-        const insertSQL = `
-            INSERT INTO user_diseases (user_id, disease_id, name, description, exercise_type, detailed_guideline)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-        db.query(insertSQL, [userId, diseaseId, name, description, exercise_type, detailed_guideline], (err, result) => {
-            if (err) {
-                console.error('User-disease association error:', err);
-                return res.status(500).send('Failed to associate user with disease');
-            }
-            res.send('User-disease association successful');
-        });
+        res.send('User-disease association successful');
     });
 });
 
-app.get('/api/profile/:userId', (req, res) => {
-    const userId = req.params.userId;
-    
-    // สมมุติว่าเรามีฟังก์ชัน getUserProfile ที่ดึงข้อมูลจากฐานข้อมูล
-    getUserProfile(userId)
-        .then(profile => {
-            if (!profile) {
-                return res.status(404).json({ message: 'ไม่พบข้อมูลผู้ใช้' });
-            }
-            res.json(profile);
-        })
-        .catch(error => {
-            console.error(error);
-            res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
-        });
-});
-app.put('/api/users/:userId', (req, res) => {
-    const userId = req.params.userId;
-    const { name, age, gender, phone, email } = req.body;
 
-    // สมมุติว่าเรามีฟังก์ชัน updateUserProfile ที่อัปเดตข้อมูลในฐานข้อมูล
-    updateUserProfile(userId, { name, age, gender, phone, email })
-        .then(result => {
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: 'ไม่พบผู้ใช้ที่ต้องการอัปเดต' });
-            }
-            res.json({ message: 'อัปเดตข้อมูลสำเร็จ' });
-        })
-        .catch(error => {
-            console.error(error);
-            res.status(500).json({ message: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล' });
-        });
-});
 
 
 // Routes
