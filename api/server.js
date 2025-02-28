@@ -76,11 +76,12 @@ db.connect((err) => {
 app.get("/", (req, res) => {
     res.send("API is working!");
 });
-// ใช้การตั้งชื่อ parameter อย่างสม่ำเสมอ (ไม่ว่าจะเลือกใช้ user_id หรือ userId)
-app.get('/api/profile/:userId', (req, res) => {
-    const userId = req.params.userId;
+// API endpoint สำหรับดึงข้อมูลโปรไฟล์ผู้ใช้โดยใช้ user_id
+app.get('/api/profile/:user_id', (req, res) => {
+    // ดึง user_id จาก parameter ของ URL (เช่น /api/profile/123 จะได้ userId = 123)
+    const userId = req.params.user_id;
 
-    // SQL query ยังคงเหมือนเดิม
+    // สร้าง SQL query เพื่อดึงข้อมูลที่ต้องการ
     const query = `
     SELECT 
         u.user_id,
@@ -102,23 +103,26 @@ app.get('/api/profile/:userId', (req, res) => {
     GROUP BY u.user_id, u.name, u.age, u.gender, u.email, ha.weight, ha.height, ha.bmi;
     `;
 
-    // การดำเนินการ query ฐานข้อมูล
+    // สั่งให้ฐานข้อมูล query โดยใช้ SQL ที่สร้างไว้
     db.query(query, [userId], (err, results) => {
+        // ถ้ามีข้อผิดพลาดในการ query
         if (err) {
-            console.error('เกิดข้อผิดพลาดในการ query ฐานข้อมูล:', err);
-            return res.status(500).json({ message: 'เกิดข้อผิดพลาดในฐานข้อมูล' });
+            console.error('Error querying the database: ' + err.stack);
+            // ส่ง HTTP status code 500 (Internal Server Error) พร้อมข้อความแสดงข้อผิดพลาด
+            res.status(500).send('Database error');
+            return;
         }
 
+        // ถ้ามีข้อมูลผู้ใช้
         if (results.length > 0) {
-            return res.json(results[0]);
+            // ส่งข้อมูลผู้ใช้ในรูปแบบ JSON
+            res.json(results[0]);
         } else {
-            return res.status(404).json({ message: 'ไม่พบผู้ใช้' });
+            // ถ้าไม่พบผู้ใช้ ส่ง HTTP status code 404 (Not Found)
+            res.status(404).send('User not found');
         }
     });
 });
-
-// ลบ route ที่ซ้ำกันออกหรือตรวจสอบให้แน่ใจว่าทั้งสองอันมีจุดประสงค์ที่แตกต่างกัน
-
 
 // API endpoint สำหรับบันทึกข้อมูลโรคที่ผู้ใช้เลือก
 app.post('/user-disease', (req, res) => {
@@ -164,6 +168,40 @@ app.post('/user-disease', (req, res) => {
 });
 
 
+app.get('/api/profile/:userId', (req, res) => {
+    const userId = req.params.userId;
+    
+    // สมมุติว่าเรามีฟังก์ชัน getUserProfile ที่ดึงข้อมูลจากฐานข้อมูล
+    getUserProfile(userId)
+        .then(profile => {
+            if (!profile) {
+                return res.status(404).json({ message: 'ไม่พบข้อมูลผู้ใช้' });
+            }
+            res.json(profile);
+        })
+        .catch(error => {
+            console.error(error);
+            res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+        });
+});
+
+app.put('/api/users/:userId', (req, res) => {
+    const userId = req.params.userId;
+    const { name, age, gender, phone, email } = req.body;
+
+    // สมมุติว่าเรามีฟังก์ชัน updateUserProfile ที่อัปเดตข้อมูลในฐานข้อมูล
+    updateUserProfile(userId, { name, age, gender, phone, email })
+        .then(result => {
+            if (result.affectedRows === 0) {
+                return res.status(404).json({ message: 'ไม่พบผู้ใช้ที่ต้องการอัปเดต' });
+            }
+            res.json({ message: 'อัปเดตข้อมูลสำเร็จ' });
+        })
+        .catch(error => {
+            console.error(error);
+            res.status(500).json({ message: 'เกิดข้อผิดพลาดในการอัปเดตข้อมูล' });
+        });
+});
 
 
 // Routes
