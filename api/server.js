@@ -103,70 +103,52 @@ app.get('/api/profile/:user_id', (req, res) => {
     GROUP BY u.user_id, u.name, u.age, u.gender, u.email, ha.weight, ha.height, ha.bmi;
     `;
 
-    // สั่งให้ฐานข้อมูล query โดยใช้ SQL ที่สร้างไว้
+    
     db.query(query, [userId], (err, results) => {
-        // ถ้ามีข้อผิดพลาดในการ query
         if (err) {
             console.error('Error querying the database: ' + err.stack);
-            // ส่ง HTTP status code 500 (Internal Server Error) พร้อมข้อความแสดงข้อผิดพลาด
             res.status(500).send('Database error');
             return;
         }
 
-        // ถ้ามีข้อมูลผู้ใช้
         if (results.length > 0) {
-            // ส่งข้อมูลผู้ใช้ในรูปแบบ JSON
             res.json(results[0]);
         } else {
-            // ถ้าไม่พบผู้ใช้ ส่ง HTTP status code 404 (Not Found)
             res.status(404).send('User not found');
         }
     });
 });
 
-// API endpoint สำหรับบันทึกข้อมูลโรคที่ผู้ใช้เลือก
 app.post('/user-disease', (req, res) => {
-    // ดึง userId และ diseaseId จาก request body
     const { userId, diseaseId } = req.body;
-
     // ดึงข้อมูลโรคจากตาราง diseases
     const getDiseaseSQL = `
         SELECT name, description, exercise_type, detailed_guideline
         FROM diseases WHERE disease_id = ?
     `;
-
-    // สั่งให้ฐานข้อมูล query เพื่อดึงข้อมูลโรค
     db.query(getDiseaseSQL, [diseaseId], (err, diseaseResult) => {
         if (err) {
             console.error('Error fetching disease data:', err);
             return res.status(500).send('Failed to fetch disease data');
         }
-
         if (diseaseResult.length === 0) {
             return res.status(404).send('Disease not found');
         }
-
         const { name, description, exercise_type, detailed_guideline } = diseaseResult[0];
-
         // บันทึกข้อมูลโรคลงใน user_diseases
         const insertSQL = `
             INSERT INTO user_diseases (user_id, disease_id, name, description, exercise_type, detailed_guideline)
             VALUES (?, ?, ?, ?, ?, ?)
         `;
-
-        // สั่งให้ฐานข้อมูล query เพื่อบันทึกข้อมูล
         db.query(insertSQL, [userId, diseaseId, name, description, exercise_type, detailed_guideline], (err, result) => {
             if (err) {
                 console.error('User-disease association error:', err);
                 return res.status(500).send('Failed to associate user with disease');
             }
-
-            // ถ้าสำเร็จ ส่งข้อความกลับไป
             res.send('User-disease association successful');
         });
     });
 });
-
 
 app.get('/api/profile/:userId', (req, res) => {
     const userId = req.params.userId;
@@ -184,7 +166,6 @@ app.get('/api/profile/:userId', (req, res) => {
             res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
         });
 });
-
 app.put('/api/users/:userId', (req, res) => {
     const userId = req.params.userId;
     const { name, age, gender, phone, email } = req.body;
