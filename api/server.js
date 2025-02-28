@@ -315,19 +315,18 @@ app.post('/user-disease', (req, res) => {
 
 
 // ดึงข้อมูลผู้ใช้ทั้งหมด
+
 app.get('/users', (req, res) => {
-  const sql = 'SELECT user_id, name, age, gender, phone, email FROM users';
-  db.query(sql, (err, results) => {
-    if (err) {
-      console.error('Error fetching users:', err);
-      res.status(500).send('Failed to fetch users');
-    } else {
-      res.json(results);
-    }
-  });
+    const sql = 'SELECT user_id, name, age, gender, phone, email FROM users';
+    db.query(sql, (err, results) => {
+        if (err) {
+            console.error('Error fetching users:', err);
+            return res.status(500).send('Failed to fetch users');
+        }
+        res.json(results);
+    });
 });
 
-// ลบผู้ใช้
 app.delete('/users/:userId', (req, res) => {
     const userId = req.params.userId;
     const sql = 'DELETE FROM users WHERE user_id = ?';
@@ -342,7 +341,6 @@ app.delete('/users/:userId', (req, res) => {
     });
 });
 
-// แก้ไขข้อมูลผู้ใช้
 app.put('/users/:userId', (req, res) => {
     const userId = req.params.userId;
     const {
@@ -366,7 +364,6 @@ app.put('/users/:userId', (req, res) => {
         res.send('User updated successfully');
     });
 });
-
 
 app.post('/users', async (req, res) => {
     const {
